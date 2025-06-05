@@ -1,0 +1,76 @@
+# variables.tf - объявите все переменные здесь
+variable "virtual_machines" {
+  type = map(object({
+    vm_name      = string
+    vm_cpu       = number
+    ram          = number
+    disk         = number
+    disk_name    = string
+    cloud_config = string
+  }))
+}
+
+variable "image_id" {
+  type      = string
+  sensitive = true
+}
+
+variable "network_name" {
+  type    = string
+  default = "default-network"
+}
+
+variable "subnet_cidr" {
+  type    = string
+  default = "192.168.10.0/24"
+}
+
+# main.tf
+resource "yandex_compute_disk" "boot-disk" {
+  for_each = var.virtual_machines
+  name     = "${each.key}-${each.value["disk_name"]" # Уникальное имя
+  type     = "network-hdd"
+  zone     = "ru-central1-a"
+  size     = each.value["disk"]
+  image_id = var.image_id # Используем переменную вместо хардкода
+}
+
+data "yandex_vpc_network" "test-network" {
+  name = var.network_name # Используем переменную
+}
+
+resource "yandex_vpc_subnet" "subnet-1" {
+  name           = "tf-subnet-${terraform.workspace}" # Динамическое имя
+  zone           = "ru-central1-a"
+  network_id     = data.yandex_vpc_network.test-network.id
+  v4_cidr_blocks = [var.subnet_cidr] # Используем переменную
+}
+
+resource "yandex_compute_instance" "virtual_machine" {
+  for_each = var.virtual_machines
+  name     = "${terraform.workspace}-${each.value["vm_name"]}" # Добавляем workspace
+
+  resources {
+    cores  = each.value["vm_cpu"]
+    memory = each.value["ram"]
+  }
+
+  boot_disk {
+    disk_id = yandex_compute_disk.boot-disk[each.key].id
+  }
+
+  network_interface {
+    subnet_id = yandex_vpc_subnet.subnet-1.id
+    nat       = true
+  }
+
+  metadata = {
+    user-data = templatefile(each.value["cloud_config"], {
+      ssh_keys = file("~/.ssh/authorized_keys") # Чтение из локального файла
+    })
+  }
+
+  scheduling_policy {
+    preemptible = true
+  }
+}

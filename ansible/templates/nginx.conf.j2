@@ -1,0 +1,47 @@
+user www-data;
+worker_processes auto;
+error_log /var/log/nginx/error.log;
+pid /var/run/nginx.pid;
+
+events {
+    worker_connections 1024;
+}
+
+http {
+    upstream backend {
+        {% for host in groups['web'] %}
+        server {{ hostvars[host].ansible_host }}:80 weight=1 max_fails=2 fail_timeout=30s;
+        {% endfor %}
+
+        # Параметры балансировки
+        least_conn;               # Предпочитаем сервер с меньшим числом подключений
+        keepalive 32;             # Кэширование соединений к бэкендам
+    }
+
+    server {
+        listen 3000;
+        server_name _;
+
+        # Таймауты
+        proxy_connect_timeout 5s;
+        proxy_send_timeout 10s;
+        proxy_read_timeout 10s;
+        send_timeout 10s;
+
+        location / {
+            proxy_pass http://backend;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+
+            # Политика повтора запросов
+            proxy_next_upstream error timeout invalid_header http_500 http_502 http_503 http_504;
+            proxy_next_upstream_timeout 5s;
+            proxy_next_upstream_tries 3;
+
+            # Отключение sticky сессий (для равномерного распределения)
+            proxy_cookie_path / "/; sticky=off; Secure; HttpOnly";
+        }
+    }
+}

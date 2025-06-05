@@ -1,0 +1,6 @@
+server {
+    listen 3000;
+    location / {
+        proxy_pass http://{{ groups['web'][0] }}:80;
+    }
+}
