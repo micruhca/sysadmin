@@ -7,10 +7,10 @@
 
 - `terraform/` - конфигурация для развертывания 3 ВМ в Yandex Cloud
 - `ansible/` - playbook и роли для настройки машин
-Структура: 
+ 
 
-├── ansible
-│   ├── ansible.cfg
+-├── ansible
+-│   ├── ansible.cfg
 │   ├── inventory.ini
 │   ├── inventory.yaml
 │   ├── playbook.yml
