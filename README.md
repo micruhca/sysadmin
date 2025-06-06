@@ -9,8 +9,8 @@
 - `ansible/` - playbook и роли для настройки машин
  
 
--├── ansible
--│   ├── ansible.cfg
+├── ansible
+│   ├── ansible.cfg
 │   ├── inventory.ini
 │   ├── inventory.yaml
 │   ├── playbook.yml
