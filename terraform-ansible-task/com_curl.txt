@@ -1,3 +1,10 @@
+
+for ($i=1; $i -le 5; $i++) { 
+    $response = (curl http://158.160.56.103:3000 -UseBasicParsing).Content
+    $machine = ($response -split '<h1>|</h1>')[1]
+    "Запрос $i`: $machine"
+}
+
 Эта команда PowerShell выполняет следующие действия:
 
 Создает цикл for, который выполняется 5 раз (для значений $i от 1 до 5).
